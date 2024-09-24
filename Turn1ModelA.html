@@ -1,164 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>THEMIS & ARTEMIS Mission Visualization</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.3.0/d3.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
-    />
+<head>
+    <meta charset="UTF-8">
+    <title>15x15 Maze Game</title>
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        background: #000;
-        color: #fff;
-        overflow: hidden;
-      }
-      #visualization {
-        width: 100vw;
-        height: 100vh;
-        position: relative;
-      }
-      .orbit {
-        stroke: #fff;
-        fill: none;
-        stroke-width: 1;
-      }
-      .probe {
-        fill: #ffd700;
-        stroke: #000;
-        stroke-width: 0.5;
-      }
-      .info-box {
-        position: absolute;
-        background: rgba(0, 0, 0, 0.8);
-        padding: 10px;
-        border-radius: 5px;
-        display: none;
-      }
-      .phase-button {
-        background-color: #4caf50; /* Green */
-        border: none;
-        color: white;
-        padding: 15px 32px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 4px 2px;
-        cursor: pointer;
-      }
+        body { font-family: monospace; text-align: center; }
+        #maze { white-space: pre; font-size: 12px; }
+        #menu { margin-bottom: 20px; }
+        .player { color: red; }
+        .treasure { color: gold; }
+        .wall { color: #888; }
+        .teleporter { color: blue; }
     </style>
-  </head>
-  <body>
-    <div id="visualization"></div>
-    <div id="info" class="info-box"></div>
-    <div style="position: absolute; bottom: 10px; left: 10px">
-      <button class="phase-button" onclick="showPhase('Tail')">
-        Tail Phase
-      </button>
-      <button class="phase-button" onclick="showPhase('Dawn')">
-        Dawn Phase
-      </button>
-      <button class="phase-button" onclick="showPhase('Dayside')">
-        Dayside Phase
-      </button>
-      <button class="phase-button" onclick="showPhase('Dusk')">
-        Dusk Phase
-      </button>
-    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
 
-    <script>
-      const width = window.innerWidth,
-        height = window.innerHeight;
-      const svg = d3
-        .select('#visualization')
-        .append('svg')
-        .attr('width', width)
-        .attr('height', height);
+<div id="menu">
+    <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+    </select>
+    <button onclick="startGame()">Start Game</button>
+</div>
 
-      const phases = {
-        Tail: { apogee: 12, sector: 'nightside', mmsPosition: 'dawn' },
-        Dawn: { apogee: 12, sector: 'dawnside', mmsPosition: 'dayside' },
-        Dayside: { apogee: 12, sector: 'dayside', mmsPosition: 'dusk' },
-        Dusk: { apogee: 13, sector: 'duskside', mmsPosition: 'tail' },
-      };
+<div id="gameInfo">
+    <p>Score: <span id="score">0</span> | Moves: <span id="moves">0</span> | Reveals Left: <span id="reveals">3</span></p>
+</div>
+<div id="maze"></div>
 
-      function drawOrbits(phase) {
-        svg.selectAll('*').remove();
-        const phaseData = phases[phase];
-        const scale = d3
-          .scaleLinear()
-          .domain([0, 30])
-          .range([0, height / 2 - 50]);
-        const center = { x: width / 2, y: height / 2 };
+<script>
+function startGame() {
+    let difficulty = $('#difficulty').val();
+    let mazeSize = 15;
+    let player = {x: 0, y: 0};
+    let score = 0, moves = 0, revealsLeft = 3;
+    let maze = generateMaze(mazeSize, difficulty);
 
-        // Earth
-        svg
-          .append('circle')
-          .attr('cx', center.x)
-          .attr('cy', center.y)
-          .attr('r', 20)
-          .attr('fill', 'blue');
+    function generateMaze(size, diff) {
+        // Simplified maze generation logic (not included here for brevity)
+        // This should return a 2D array representing the maze with walls, paths, treasures, etc.
+        return Array(size).fill().map(() => Array(size).fill(' '));
+    }
 
-        // Draw THEMIS orbits
-        for (let i = 0; i < 3; i++) {
-          const r = scale(phaseData.apogee + i * 0.5);
-          svg
-            .append('ellipse')
-            .attr('class', 'orbit')
-            .attr('cx', center.x)
-            .attr('cy', center.y)
-            .attr('rx', r)
-            .attr('ry', r * 0.5)
-            .attr('transform', `rotate(${i * 30}, ${center.x}, ${center.y})`);
-
-          // Probe position
-          svg
-            .append('circle')
-            .attr('class', 'probe')
-            .attr('cx', center.x + r * Math.cos((i * Math.PI) / 6))
-            .attr('cy', center.y + r * 0.5 * Math.sin((i * Math.PI) / 6))
-            .attr('r', 5)
-            .on('mouseover', function () {
-              showInfo(phase, i);
-            })
-            .on('mouseout', hideInfo);
+    function renderMaze() {
+        let mazeString = '';
+        for(let y = 0; y < mazeSize; y++) {
+            for(let x = 0; x < mazeSize; x++) {
+                if(x === player.x && y === player.y) mazeString += '▣'; // Player
+                else if(maze[y][x] === 'W') mazeString += '█'; // Wall
+                else if(maze[y][x] === 'T') mazeString += '✦'; // Treasure
+                else if(maze[y][x] === 'P') mazeString += '➜'; // Teleporter or one-way path
+                else mazeString += '·'; // Path
+            }
+            mazeString += '\n';
         }
+        $('#maze').text(mazeString);
+    }
 
-        // MMS position indicator
-        svg
-          .append('text')
-          .attr('x', width - 100)
-          .attr('y', 50)
-          .text(`MMS: ${phaseData.mmsPosition} sector`)
-          .attr('fill', 'white');
-      }
+    function movePlayer(dx, dy) {
+        let newX = player.x + dx, newY = player.y + dy;
+        if(newX >= 0 && newX < mazeSize && newY >= 0 && newY < mazeSize && maze[newY][newX] !== 'W') {
+            player.x = newX; player.y = newY;
+            score--; // Deduct point for move
+            moves++;
+            if(maze[newY][newX] === 'T') {
+                score += 50; // Bonus for treasure
+                maze[newY][newX] = ' '; // Remove treasure
+            }
+            // Handle teleporter logic here
+            updateGameInfo();
+            renderMaze();
+        }
+    }
 
-      function showInfo(phase, probeIndex) {
-        d3.select('#info')
-          .style('display', 'block')
-          .html(
-            `Phase: ${phase}<br>Probe ${probeIndex + 3}: Studying ${
-              phaseData.sector
-            } interactions`
-          )
-          .style('left', d3.event.pageX + 10 + 'px')
-          .style('top', d3.event.pageY - 28 + 'px');
-      }
+    function updateGameInfo() {
+        $('#score').text(score);
+        $('#moves').text(moves);
+        $('#reveals').text(revealsLeft);
+    }
 
-      function hideInfo() {
-        d3.select('#info').style('display', 'none');
-      }
+    $(document).keydown(function(e) {
+        switch(e.which) {
+            case 37: movePlayer(-1, 0); break; // left
+            case 38: movePlayer(0, -1); break; // up
+            case 39: movePlayer(1, 0); break; // right
+            case 40: movePlayer(0, 1); break; // down
+        }
+    });
 
-      function showPhase(phase) {
-        drawOrbits(phase);
-      }
+    renderMaze();
+    updateGameInfo();
+}
 
-      // Initial draw
-      drawOrbits('Tail');
-    </script>
-  </body>
+// Additional functions for map reveal, difficulty adjustment, etc., would be added here
+</script>
+
+</body>
 </html>

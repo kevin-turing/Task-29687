@@ -1,1 +1,393 @@
-T1IR
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Green Maze Adventure</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
+        :root {
+            --bg-color: #1a2f1c;
+            --primary-color: #2c5e1a;
+            --secondary-color: #4a934a;
+            --accent-color: #89d77a;
+            --text-color: #e0f2e0;
+            --grid-color: #143414;
+        }
+        body { 
+            font-family: 'Roboto', sans-serif;
+            text-align: center; 
+            background: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #game-container { 
+            background: var(--primary-color);
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 0 20px rgba(137, 215, 122, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 90vw;
+        }
+        #maze-container {
+            width: 600px;
+            height: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--grid-color);
+            border-radius: 10px;
+            margin: 20px 0;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(137, 215, 122, 0.5);
+        }
+        #maze { 
+            font-family: 'Courier New', monospace; 
+            white-space: pre;
+            font-size: 24px; 
+            line-height: 1;
+            color: var(--text-color);
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            gap: 1px;
+            background-color: var(--grid-color);
+        }
+        .cell {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--primary-color);
+        }
+        #info { 
+            margin-top: 20px; 
+            font-size: 18px;
+            color: var(--accent-color);
+        }
+        button, select { 
+            margin: 10px; 
+            padding: 10px 20px; 
+            font-size: 16px;
+            background: var(--secondary-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover, select:hover {
+            background: var(--accent-color);
+            color: var(--grid-color);
+        }
+        #instructions, #tutorial {
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--text-color);
+            text-align: left;
+        }
+        #notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-color);
+            color: var(--grid-color);
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            display: none;
+            z-index: 1000;
+        }
+        #tutorial {
+            display: none;
+            background: var(--secondary-color);
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 600px;
+            height: 80%;
+            overflow-y: auto;
+            padding: 30px;
+            border-radius: 15px;
+            z-index: 1001;
+        }
+        #tutorial h2 {
+            color: var(--accent-color);
+        }
+        #tutorial p, #tutorial ul {
+            color: var(--text-color);
+        }
+        .close-tutorial {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--accent-color);
+            font-size: 24px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>🌿 Green Maze Adventure 🌿</h1>
+        <select id="difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+        </select>
+        <button onclick="game.startGame()">Start Game</button>
+        <button onclick="game.showTutorial()">How to Play</button>
+        <div id="maze-container">
+            <div id="maze"></div>
+        </div>
+        <div id="info"></div>
+        <button onclick="game.revealMap()">Reveal Map</button>
+        <div id="instructions">
+            Use arrow keys to move. Collect 💎 for points. Watch out for teleporters 🌀 and one-way paths ↑↓←→. Reach 🚪 to win!
+        </div>
+    </div>
+    <div id="notification"></div>
+    <div id="tutorial">
+        <button class="close-tutorial" onclick="game.hideTutorial()">×</button>
+        <h2>How to Play Green Maze Adventure</h2>
+        <p>Welcome to the Green Maze Adventure! Navigate through the maze, collect treasures, and reach the exit with the highest score possible.</p>
+        <h3>Game Elements:</h3>
+        <ul>
+            <li>🧙 - You (the player)</li>
+            <li>🌳 - Wall (you can't pass through)</li>
+            <li>⬜ - Open path</li>
+            <li>💎 - Treasure (+50 points)</li>
+            <li>🌀 - Teleporter (moves you to a random location)</li>
+            <li>↑↓←→ - One-way paths (you can only move in the direction of the arrow)</li>
+            <li>🚪 - Exit (reach this to win)</li>
+        </ul>
+        <h3>How to Play:</h3>
+        <ol>
+            <li>Use the arrow keys on your keyboard to move up, down, left, or right.</li>
+            <li>Each move costs 1 point, so plan your route carefully!</li>
+            <li>Collect treasures (💎) to gain 50 points each.</li>
+            <li>Avoid walls (🌳) - you can't move through them.</li>
+            <li>Be careful with teleporters (🌀) - they'll move you to a random location.</li>
+            <li>One-way paths (↑↓←→) only allow movement in the direction of the arrow.</li>
+            <li>Use the "Reveal Map" button to temporarily see a portion of the maze (you have 3 reveals per game).</li>
+            <li>Reach the exit (🚪) to win the game!</li>
+        </ol>
+        <h3>Difficulty Levels:</h3>
+        <ul>
+            <li>Easy: More treasures, fewer obstacles</li>
+            <li>Medium: Balanced treasures and obstacles</li>
+            <li>Hard: Fewer treasures, more obstacles</li>
+        </ul>
+        <p>Good luck, and enjoy your green maze adventure!</p>
+    </div>
+
+    <script>
+        const game = {
+            size: 15,
+            maze: [],
+            playerPos: [0, 0],
+            score: 0,
+            moves: 0,
+            revealsLeft: 3,
+            symbols: {
+                wall: '🌳', path: '⬜', player: '🧙', treasure: '💎',
+                teleporter: '🌀', oneWayUp: '↑', oneWayDown: '↓',
+                oneWayLeft: '←', oneWayRight: '→', exit: '🚪'
+            },
+
+            generateMaze(difficulty) {
+                this.maze = Array(this.size).fill().map(() => Array(this.size).fill(this.symbols.path));
+                
+                const wallProbability = {easy: 0.2, medium: 0.25, hard: 0.3}[difficulty];
+                for (let i = 0; i < this.size; i++) {
+                    for (let j = 0; j < this.size; j++) {
+                        if (Math.random() < wallProbability) this.maze[i][j] = this.symbols.wall;
+                    }
+                }
+
+                this.maze[0][0] = this.symbols.path;
+                this.maze[this.size-1][this.size-1] = this.symbols.exit;
+
+                this.generatePath(0, 0, this.size-1, this.size-1);
+
+                const treasureCount = {easy: 7, medium: 5, hard: 3}[difficulty];
+                this.addRandomElements(this.symbols.treasure, treasureCount);
+
+                const teleporterCount = {easy: 2, medium: 3, hard: 4}[difficulty];
+                this.addRandomElements(this.symbols.teleporter, teleporterCount);
+
+                const oneWayCount = {easy: 3, medium: 5, hard: 7}[difficulty];
+                const oneWaySymbols = [this.symbols.oneWayUp, this.symbols.oneWayDown, this.symbols.oneWayLeft, this.symbols.oneWayRight];
+                this.addRandomElements(oneWaySymbols[Math.floor(Math.random() * oneWaySymbols.length)], oneWayCount);
+
+                this.playerPos = [0, 0];
+                this.maze[0][0] = this.symbols.player;
+            },
+
+            generatePath(startX, startY, endX, endY) {
+                let currentX = startX;
+                let currentY = startY;
+
+                while (currentX !== endX || currentY !== endY) {
+                    this.maze[currentY][currentX] = this.symbols.path;
+                    
+                    if (Math.random() < 0.5) {
+                        currentX += Math.sign(endX - currentX);
+                    } else {
+                        currentY += Math.sign(endY - currentY);
+                    }
+
+                    currentX = Math.max(0, Math.min(currentX, this.size - 1));
+                    currentY = Math.max(0, Math.min(currentY, this.size - 1));
+                }
+
+                this.maze[endY][endX] = this.symbols.exit;
+            },
+
+            addRandomElements(element, count) {
+                for (let i = 0; i < count; i++) {
+                    let x, y;
+                    do {
+                        x = Math.floor(Math.random() * this.size);
+                        y = Math.floor(Math.random() * this.size);
+                    } while (this.maze[y][x] !== this.symbols.path);
+                    this.maze[y][x] = element;
+                }
+            },
+
+            drawMaze() {
+                const mazeElement = document.getElementById('maze');
+                mazeElement.innerHTML = '';
+                for (let y = 0; y < this.size; y++) {
+                    for (let x = 0; x < this.size; x++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.textContent = this.maze[y][x];
+                        mazeElement.appendChild(cell);
+                    }
+                }
+                document.getElementById('info').innerHTML = `Score: ${this.score} | Moves: ${this.moves} | Reveals left: ${this.revealsLeft}`;
+            },
+            movePlayer(dx, dy) {
+                const newX = this.playerPos[0] + dx;
+                const newY = this.playerPos[1] + dy;
+
+                if (newX < 0 || newX >= this.size || newY < 0 || newY >= this.size || this.maze[newY][newX] === this.symbols.wall) {
+                    this.showNotification("You can't move there!");
+                    return;
+                }
+
+                const currentCell = this.maze[this.playerPos[1]][this.playerPos[0]];
+                if (currentCell === this.symbols.oneWayUp && dy > 0) {
+                    this.showNotification("You can't go back on a one-way path!");
+                    return;
+                }
+                if (currentCell === this.symbols.oneWayDown && dy < 0) {
+                    this.showNotification("You can't go back on a one-way path!");
+                    return;
+                }
+                if (currentCell === this.symbols.oneWayLeft && dx > 0) {
+                    this.showNotification("You can't go back on a one-way path!");
+                    return;
+                }
+                if (currentCell === this.symbols.oneWayRight && dx < 0) {
+                    this.showNotification("You can't go back on a one-way path!");
+                    return;
+                }
+
+                this.maze[this.playerPos[1]][this.playerPos[0]] = this.symbols.path;
+                this.playerPos = [newX, newY];
+
+                if (this.maze[newY][newX] === this.symbols.treasure) {
+                    this.score += 50;
+                    this.showNotification("You found a treasure! +50 points");
+                } else if (this.maze[newY][newX] === this.symbols.teleporter) {
+                    do {
+                        this.playerPos = [Math.floor(Math.random() * this.size), Math.floor(Math.random() * this.size)];
+                    } while (this.maze[this.playerPos[1]][this.playerPos[0]] === this.symbols.wall);
+                    this.showNotification("Whoosh! You've been teleported!");
+                } else if (this.maze[newY][newX] === this.symbols.exit) {
+                    this.showNotification(`Congratulations! You've reached the exit. Final score: ${this.score}`);
+                    setTimeout(() => {
+                        alert(`You win! Final score: ${this.score}`);
+                        this.startGame();
+                    }, 1000);
+                    return;
+                }
+
+                this.maze[this.playerPos[1]][this.playerPos[0]] = this.symbols.player;
+                this.score--;
+                this.moves++;
+                this.drawMaze();
+            },
+
+            revealMap() {
+                if (this.revealsLeft > 0) {
+                    this.revealsLeft--;
+                    const revealRadius = 3;
+                    for (let y = Math.max(0, this.playerPos[1] - revealRadius); y < Math.min(this.size, this.playerPos[1] + revealRadius + 1); y++) {
+                        for (let x = Math.max(0, this.playerPos[0] - revealRadius); x < Math.min(this.size, this.playerPos[0] + revealRadius + 1); x++) {
+                            if (this.maze[y][x] === this.symbols.path) this.maze[y][x] = '  ';
+                        }
+                    }
+                    this.drawMaze();
+                    this.showNotification("Map partially revealed!");
+                } else {
+                    this.showNotification("No more reveals left!");
+                }
+            },
+
+            startGame() {
+                const difficulty = document.getElementById('difficulty').value;
+                this.score = 100;
+                this.moves = 0;
+            this.revealsLeft = 3;
+            this.generateMaze(difficulty);
+            this.drawMaze();
+            this.showNotification(`New game started on ${difficulty} difficulty. Good luck!`);
+        },
+
+        showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 2000);
+        },
+
+        showTutorial() {
+            document.getElementById('tutorial').style.display = 'block';
+        },
+
+        hideTutorial() {
+            document.getElementById('tutorial').style.display = 'none';
+        }
+    };
+
+    document.addEventListener('keydown', (e) => {
+        const movements = {
+            'ArrowUp': [0, -1],
+            'ArrowDown': [0, 1],
+            'ArrowLeft': [-1, 0],
+            'ArrowRight': [1, 0]
+        };
+        if (movements[e.key]) {
+            game.movePlayer(...movements[e.key]);
+        }
+    });
+
+    game.startGame();
+</script>

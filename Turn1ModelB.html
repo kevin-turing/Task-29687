@@ -1,1 +1,111 @@
-T1MB
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>15x15 Maze Game</title>
+<style>
+  body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; background: #f0f0f0; }
+  #menu, #gameBoard { margin: 20px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+  #menu select, #menu button { margin: 10px; padding: 5px; }
+  #gameBoard { display: none; }
+  .row { display: flex; }
+  .cell { width: 20px; height: 20px; line-height: 20px; text-align: center; border: 1px solid #ddd; }
+  .player { background-color: #00f; color: white; }
+  .treasure { color: #ffd700; }
+  .exit { background-color: #0f0; }
+  .teleporter { color: #800080; }
+  .oneWay { background-color: #ff0000; color: white; }
+</style>
+</head>
+<body>
+<div id="menu">
+  <select id="difficulty">
+    <option value="easy">Easy</option>
+    <option value="medium" selected>Medium</option>
+    <option value="hard">Hard</option>
+  </select>
+  <button onclick="startGame()">Start Game</button>
+</div>
+<div id="gameBoard"></div>
+
+<script>
+let maze, playerPos, score, revealsLeft;
+const size = 15;
+const symbols = { empty: '⬜', wall: '⬛', player: '🧍', treasure: '💎', exit: '🚪', teleporter: '🌌', oneWay: '🔽' };
+
+function generateMaze(difficulty) {
+    // Simplified maze generation for example
+    maze = Array(size).fill().map(() => Array(size).fill(symbols.empty));
+    maze[0][0] = symbols.player;
+    maze[size-1][size-1] = symbols.exit;
+    // Add treasures, one-way paths, and teleporters based on difficulty
+    // This part would need more complex logic for actual gameplay
+}
+
+function drawMaze() {
+    const board = document.getElementById('gameBoard');
+    board.innerHTML = '';
+    maze.forEach(row => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row';
+        row.forEach(cell => {
+            const cellDiv = document.createElement('div');
+            cellDiv.className = 'cell';
+            cellDiv.textContent = cell;
+            rowDiv.appendChild(cellDiv);
+        });
+        board.appendChild(rowDiv);
+    });
+}
+
+function movePlayer(direction) {
+    const [dx, dy] = { 'up': [-1, 0], 'down': [1, 0], 'left': [0, -1], 'right': [0, 1] }[direction];
+    const [newX, newY] = [playerPos[0] + dx, playerPos[1] + dy];
+    
+    if (newX >= 0 && newX < size && newY >= 0 && newY < size && maze[newX][newY] !== symbols.wall) {
+        if(maze[newX][newY] === symbols.treasure) score += 50;
+        else if(maze[newX][newY] === symbols.exit) endGame(true);
+        else if(maze[newX][newY] === symbols.oneWay && direction !== 'up') return; // Example one-way logic
+        else if(maze[newX][newY] === symbols.teleporter) {
+            // Teleport logic would go here, for now just move
+        }
+        
+        score--;
+        maze[playerPos[0]][playerPos[1]] = symbols.empty;
+        playerPos = [newX, newY];
+        maze[newX][newY] = symbols.player;
+        drawMaze();
+    }
+}
+
+function revealMap() {
+    if(revealsLeft > 0) {
+        // Implement partial map reveal logic
+        revealsLeft--;
+    }
+}
+
+function startGame() {
+    const difficulty = document.getElementById('difficulty').value;
+    score = 100; // Starting score
+    revealsLeft = 3; // Example number of reveals
+    generateMaze(difficulty);
+    playerPos = [0, 0];
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('gameBoard').style.display = 'block';
+    drawMaze();
+    document.addEventListener('keydown', (e) => {
+        const directions = { 'ArrowUp': 'up', 'ArrowDown': 'down', 'ArrowLeft': 'left', 'ArrowRight': 'right' };
+        if(e.key in directions) movePlayer(directions[e.key]);
+    });
+}
+
+function endGame(won) {
+    alert(won ? `You won! Final score: ${score}` : `Game Over. Your score: ${score}`);
+    document.getElementById('menu').style.display = 'block';
+    document.getElementById('gameBoard').style.display = 'none';
+}
+
+</script>
+</body>
+</html>
